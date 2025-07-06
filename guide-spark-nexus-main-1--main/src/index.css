@@ -1,0 +1,312 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 139 92 246;
+    --color-primary-dark: 124 58 237;
+    --color-secondary: 236 72 153;
+    --color-secondary-dark: 219 39 119;
+    --color-accent: 249 115 22;
+    --color-background-dark: 17 24 39;
+    --color-background-light: 249 250 251;
+    --color-text-dark: 31 41 55;
+    --color-text-light: 243 244 246;
+  }
+
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    @apply overflow-x-hidden;
+    max-width: 100vw;
+  }
+
+  body {
+    @apply font-sans antialiased text-white bg-black transition-colors duration-200;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight;
+  }
+
+  h2 {
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-tight;
+  }
+
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl leading-snug;
+  }
+
+  /* Prevent horizontal overflow */
+  .container {
+    @apply max-w-full px-3 sm:px-4 lg:px-6 xl:px-8;
+  }
+
+  /* Scrollbar styling for dark theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-black/20;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/20 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-white/30;
+  }
+}
+
+@layer components {
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-purple to-brand-pink;
+  }
+
+  .gradient-bg {
+    @apply bg-gradient-to-r from-brand-purple to-brand-pink;
+  }
+
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-lg rounded-xl shadow-lg border border-white/10 transition-all duration-300 hover:shadow-xl hover:border-brand-purple/50;
+  }
+
+  .btn-primary {
+    @apply gradient-bg text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl border-0 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white/10 text-white font-semibold py-3 px-6 rounded-lg border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2;
+  }
+
+  .section-padding {
+    @apply py-8 sm:py-12 md:py-16 lg:py-20 xl:py-24;
+  }
+
+  .news-ticker {
+    @apply whitespace-nowrap inline-block animate-[marquee_20s_linear_infinite] md:animate-[marquee_30s_linear_infinite];
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(100%);
+    }
+
+    to {
+      transform: translateX(-100%);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  /* Enhanced button visibility and interactions */
+  button {
+    @apply cursor-pointer select-none;
+  }
+
+  button:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .hover-lift {
+    @apply hover:-translate-y-1 hover:shadow-lg transition-all duration-200;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-soft {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: .8;
+    }
+  }
+
+  /* Page transitions */
+  .page-transition {
+    @apply opacity-0 translate-y-4;
+    animation: pageEnter 0.6s ease-out forwards;
+  }
+
+  @keyframes pageEnter {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Form styling */
+  input,
+  textarea,
+  select {
+    @apply bg-white/5 border-white/10 text-white placeholder:text-white/50 focus:border-brand-purple/50 focus:ring-brand-purple/20;
+  }
+
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-300 hover:scale-105 hover:shadow-2xl;
+  }
+
+  /* Prevent overflow on all elements */
+  .overflow-container {
+    @apply max-w-full overflow-hidden;
+  }
+
+  /* Mobile-first responsive grid */
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6;
+  }
+
+  /* Safe area handling for mobile */
+  .mobile-safe {
+    @apply pb-safe pt-safe pl-safe pr-safe;
+  }
+
+  /* Mobile-optimized spacing */
+  .mobile-spacing {
+    @apply px-3 sm:px-4 md:px-6 lg:px-8;
+  }
+
+  /* Better mobile touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  @keyframes shimmer {
+    0% {
+      left: -60%;
+    }
+
+    100% {
+      left: 120%;
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2.2s linear infinite;
+  }
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  .container {
+    @apply px-3;
+  }
+
+  /* Ensure buttons are touch-friendly */
+  button,
+  a {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Better text sizing for mobile readability */
+  p {
+    @apply text-sm sm:text-base leading-relaxed;
+  }
+
+  /* Improve form elements on mobile */
+  input,
+  textarea,
+  select {
+    @apply text-base;
+    /* Prevents zoom on iOS */
+    min-height: 44px;
+  }
+
+  /* Optimize mobile navigation */
+  nav {
+    @apply px-3;
+  }
+
+  /* Better mobile typography hierarchy */
+  h1 {
+    @apply text-2xl leading-tight;
+  }
+
+  h2 {
+    @apply text-xl leading-tight;
+  }
+
+  h3 {
+    @apply text-lg leading-snug;
+  }
+
+  /* Mobile card improvements */
+  .glass-card {
+    @apply p-4 rounded-lg;
+  }
+
+  /* Better mobile spacing */
+  .section-padding {
+    @apply py-8;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    @apply px-6;
+  }
+
+  .section-padding {
+    @apply py-12;
+  }
+}
+
+/* Enhanced mobile menu animations */
+@media (max-width: 1024px) {
+  .mobile-menu-item {
+    @apply transform transition-all duration-200 active:scale-95;
+  }
+}
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}

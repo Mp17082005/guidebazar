@@ -1,0 +1,37 @@
+{
+    "name": "Guide Bazaar - Empowering Every Student's Journey",
+    "short_name": "Guide Bazaar",
+    "description": "Learn, Build, Connect. Your smart student companion for finance, events, networking and more.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#111827",
+    "theme_color": "#8B5CF6",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/favicon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ],
+    "categories": [
+        "education",
+        "productivity",
+        "lifestyle"
+    ],
+    "lang": "en",
+    "dir": "ltr",
+    "scope": "/",
+    "prefer_related_applications": false
+}
