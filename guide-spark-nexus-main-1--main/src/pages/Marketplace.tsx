@@ -19,84 +19,100 @@ import {
   X,
 } from "lucide-react";
 
+const API_URL = "http://localhost:5000/api/marketplace";
+
 const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [activeItem, setActiveItem] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [showListingForm, setShowListingForm] = useState(false);
+  const [listings, setListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>(null);
 
   useEffect(() => {
     setMounted(true);
+    fetchListings();
     return () => setMounted(false);
   }, []);
 
-  const listings = [
-    {
-      id: 1,
-      title: "Principles of Economics by N. Gregory Mankiw",
-      category: "Books",
-      price: "₹350",
-      image: "📚",
-      condition: "Like New",
-      location: "Delhi University",
-      description:
-        "7th edition, minimal highlighting, perfect for Economics 101.",
-      listedOn: "2 days ago",
-      seller: "Aditya M.",
-    },
-    {
-      id: 2,
-      title: "Scientific Calculator - Casio fx-991EX",
-      category: "Electronics",
-      price: "₹800",
-      image: "🧮",
-      condition: "Good",
-      location: "IIT Bombay",
-      description:
-        "Advanced scientific calculator, works perfectly. Original price was ₹1,495.",
-      listedOn: "5 days ago",
-      seller: "Kavita S.",
-    },
-    {
-      id: 3,
-      title: "Python Programming Course Notes",
-      category: "Notes",
-      price: "₹200",
-      image: "📝",
-      condition: "New",
-      location: "Online Delivery",
-      description:
-        "Comprehensive notes from Advanced Python course, includes practice problems and solutions.",
-      listedOn: "1 week ago",
-      seller: "Rajiv K.",
-    },
-    {
-      id: 4,
-      title: "Zomato Pro Membership (6 months)",
-      category: "Coupons",
-      price: "₹450",
-      image: "🎟️",
-      condition: "New",
-      location: "Online Transfer",
-      description:
-        "Transferable Zomato Pro membership, valid for 6 months. Get food delivery discounts.",
-      listedOn: "3 days ago",
-      seller: "Sanya P.",
-    },
-    {
-      id: 5,
-      title: "Techfest 2025 Early Bird Ticket",
-      category: "Event Tickets",
-      price: "₹600",
-      image: "🎫",
-      condition: "New",
-      location: "Mumbai",
-      description:
-        "Early bird access to India's largest technical festival at IIT Bombay.",
-      listedOn: "1 day ago",
-      seller: "Arjun D.",
-    },
-  ];
+  const fetchListings = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      setListings(data);
+      setError(null);
+    } catch (err) {
+      setError("Failed to fetch listings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateListing = async (formData: any) => {
+    const payload = {
+      ...formData,
+      type: formData.type || 'sale',
+      owner: formData.owner || prompt('Enter your email (for demo):') || 'anonymous',
+      price: Number(formData.price),
+    };
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to submit listing");
+      const newListing = await res.json();
+      setListings([newListing, ...listings]);
+      setShowListingForm(false);
+      setError(null);
+    } catch (err) {
+      setError("Failed to submit listing");
+    }
+  };
+
+  const handleEdit = (item: any) => {
+    setEditingId(item._id);
+    setEditForm({ ...item });
+  };
+
+  const handleEditChange = (e: any) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+
+  const handleEditSubmit = async (e: any) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_URL}/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editForm, price: Number(editForm.price) }),
+      });
+      if (!res.ok) throw new Error('Failed to update listing');
+      const updated = await res.json();
+      setListings(listings.map(l => l._id === editingId ? updated : l));
+      setEditingId(null);
+      setEditForm(null);
+      setError(null);
+    } catch {
+      setError('Failed to update listing');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this listing?')) return;
+    try {
+      const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      setListings(listings.filter(l => l._id !== id));
+    } catch {
+      setError('Failed to delete listing');
+    }
+  };
 
   const categories = [
     "All Categories",
@@ -115,12 +131,6 @@ const Marketplace = () => {
     selectedCategory === "All Categories"
       ? listings
       : listings.filter((listing) => listing.category === selectedCategory);
-
-  const handleCreateListing = (formData: any) => {
-    console.log("New listing submitted:", formData);
-    setShowListingForm(false);
-    // Here you would typically send the data to your backend
-  };
 
   return (
     // Removed outermost div with min-h-screen and direct bg/text colors and overflow-hidden.
@@ -145,6 +155,8 @@ const Marketplace = () => {
             Buy, sell, and save on student essentials in our digital bazaar.
           </p>
         </motion.div>
+
+        {error && <div className="text-red-500 mb-4">{error}</div>}
 
         {/* Create Listing Modal */}
         <AnimatePresence>
@@ -475,7 +487,14 @@ const Marketplace = () => {
                     <div className="relative flex-shrink-0 w-16 h-16 group cursor-pointer">
                       <div className="absolute inset-0 bg-gradient-to-r from-brand-purple/40 to-brand-pink/40 rounded-lg blur opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center text-3xl overflow-hidden group">
-                        {listing.image}
+                        {(listing.images || []).map((image, index) => (
+                          <img
+                            key={index}
+                            src={image}
+                            alt={listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ))}
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
                           <ZoomIn className="w-6 h-6 text-white" />
                         </div>

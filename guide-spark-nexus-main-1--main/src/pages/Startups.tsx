@@ -19,6 +19,8 @@ import {
   MessageCircle,
 } from "lucide-react";
 
+const API_URL = "http://localhost:5000/api/startups";
+
 const Startups = () => {
   const [mounted, setMounted] = useState(false);
   const [showStartupForm, setShowStartupForm] = useState(false);
@@ -26,83 +28,94 @@ const Startups = () => {
   const [selectedIndustry, setSelectedIndustry] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [withInternships, setWithInternships] = useState(false);
+  const [startups, setStartups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>(null);
 
   useEffect(() => {
     setMounted(true);
+    fetchStartups();
     return () => setMounted(false);
   }, []);
 
-  const startups = [
-    {
-      id: 1,
-      name: "EduTech Solutions",
-      tags: ["EdTech", "AI"],
-      description:
-        "Revolutionizing education with AI-powered learning analytics and personalized curriculum development.",
-      founded: 2022,
-      location: "Bangalore, India",
-      founders: [
-        { name: "Aisha Patel", role: "CEO & Co-founder" },
-        { name: "Rahul Sharma", role: "CTO & Co-founder" },
-      ],
-      positions: [
-        { role: "ML Engineer", type: "Full-time" },
-        { role: "Content Marketing", type: "Internship" },
-      ],
-      website: "https://edutech-solutions.com",
-    },
-    {
-      id: 2,
-      name: "FinLearn",
-      tags: ["FinTech", "Education"],
-      description:
-        "Making financial literacy accessible through gamified learning and simulations.",
-      founded: 2023,
-      location: "Mumbai, India",
-      founders: [{ name: "Vikram Mehta", role: "CEO" }],
-      positions: [
-        { role: "Product Designer", type: "Full-time" },
-        { role: "Frontend Developer", type: "Internship" },
-      ],
-      website: "https://finlearn.com",
-    },
-    {
-      id: 3,
-      name: "GreenCommute",
-      tags: ["Sustainability", "Transportation"],
-      description:
-        "Reduces carbon footprint by connecting students for shared rides and eco-friendly transport.",
-      founded: 2021,
-      location: "Delhi, India",
-      founders: [
-        { name: "Arjun Singh", role: "CEO & Founder" },
-        { name: "Neha Gupta", role: "COO & Co-founder" },
-      ],
-      positions: [
-        { role: "Mobile Developer", type: "Full-time" },
-        { role: "Growth Marketing", type: "Internship" },
-      ],
-      website: "https://greencommute.com",
-    },
-    {
-      id: 4,
-      name: "CampusEats",
-      tags: ["Food Tech", "Logistics"],
-      description:
-        "Connects local restaurants with students for affordable meal plans and on-campus delivery.",
-      founded: 2022,
-      location: "Pune, India",
-      founders: [
-        { name: "Rohan Desai", role: "CEO & Co-founder" },
-        { name: "Meera Kapoor", role: "CMO & Co-founder" },
-      ],
-      positions: [
-        { role: "Operations Manager", type: "Full-time" },
-        { role: "UI/UX Designer", type: "Internship" },
-      ],
-      website: "https://campuseats.com",
-    },
-  ];
+  const fetchStartups = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      setStartups(data);
+      setError(null);
+    } catch (err) {
+      setError("Failed to fetch startups");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitStartup = async (formData: any) => {
+    const payload = {
+      ...formData,
+      founder: formData.founder || formData.name,
+      website: formData.website || '',
+      tags: formData.tags ? formData.tags.split(',').map((t: string) => t.trim()) : [],
+      createdBy: formData.createdBy || prompt('Enter your email (for demo):') || 'anonymous',
+    };
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to submit startup");
+      const newStartup = await res.json();
+      setStartups([newStartup, ...startups]);
+      setShowStartupForm(false);
+      setError(null);
+    } catch (err) {
+      setError("Failed to submit startup");
+    }
+  };
+
+  const handleEdit = (startup: any) => {
+    setEditingId(startup._id);
+    setEditForm({ ...startup, tags: (startup.tags || []).join(', ') });
+  };
+
+  const handleEditChange = (e: any) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+
+  const handleEditSubmit = async (e: any) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_URL}/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editForm, tags: editForm.tags.split(',').map((t: string) => t.trim()) }),
+      });
+      if (!res.ok) throw new Error('Failed to update startup');
+      const updated = await res.json();
+      setStartups(startups.map(s => s._id === editingId ? updated : s));
+      setEditingId(null);
+      setEditForm(null);
+      setError(null);
+    } catch {
+      setError('Failed to update startup');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this startup?')) return;
+    try {
+      const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      setStartups(startups.filter(s => s._id !== id));
+    } catch {
+      setError('Failed to delete startup');
+    }
+  };
 
   const mentors = [
     {
@@ -157,11 +170,6 @@ const Startups = () => {
       matchesSearch && matchesIndustry && matchesLocation && matchesInternships
     );
   });
-
-  const handleSubmitStartup = (formData: any) => {
-    console.log("New startup submitted:", formData);
-    setShowStartupForm(false);
-  };
 
   const handleInternshipFilter = (checked: boolean | "indeterminate") => {
     setWithInternships(checked === true);
@@ -283,6 +291,7 @@ const Startups = () => {
             visible: { transition: { staggerChildren: 0.1 } },
           }}
         >
+          {error && <div className="text-red-500 mb-4">{error}</div>}
           {filteredStartups.map((startup) => (
             <motion.div
               key={startup.id}
@@ -300,7 +309,7 @@ const Startups = () => {
                         {startup.name}
                       </h3>
                       <div className="flex flex-wrap gap-2 mb-3">
-                        {startup.tags.map((tag) => (
+                        {(startup.tags || []).map((tag) => (
                           <Badge
                             key={tag}
                             variant="secondary"
@@ -318,11 +327,11 @@ const Startups = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="flex items-center text-white/60">
                       <Calendar className="w-4 h-4 mr-2" />
-                      Founded: {startup.founded}
+                      Founded: {(startup.founded || 'N/A')}
                     </div>
                     <div className="flex items-center text-white/60">
                       <MapPin className="w-4 h-4 mr-2" />
-                      {startup.location}
+                      {startup.location || 'N/A'}
                     </div>
                   </div>
 
@@ -333,14 +342,14 @@ const Startups = () => {
                       Founders
                     </h4>
                     <div className="flex flex-wrap gap-3">
-                      {startup.founders.map((founder, i) => (
+                      {(startup.founders || []).map((founder, i) => (
                         <div
                           key={i}
                           className="bg-white/5 px-3 py-2 rounded-lg"
                         >
-                          <p className="text-sm font-medium">{founder.name}</p>
+                          <p className="text-sm font-medium">{founder.name || 'N/A'}</p>
                           <p className="text-xs text-white/60">
-                            {founder.role}
+                            {founder.role || 'N/A'}
                           </p>
                         </div>
                       ))}
@@ -348,14 +357,14 @@ const Startups = () => {
                   </div>
 
                   {/* Open Positions */}
-                  {startup.positions.length > 0 && (
+                  {Array.isArray(startup.positions) && startup.positions.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-sm font-semibold text-white/70 mb-2 flex items-center">
                         <Briefcase className="w-4 h-4 mr-2" />
                         Open Positions
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {startup.positions.map((position, i) => (
+                        {(startup.positions || []).map((position, i) => (
                           <Badge
                             key={i}
                             variant={
@@ -369,7 +378,7 @@ const Startups = () => {
                                 : "bg-gradient-to-r from-brand-purple to-brand-pink"
                             }
                           >
-                            {position.role} ({position.type})
+                            {position.role || 'N/A'} ({position.type || 'N/A'})
                           </Badge>
                         ))}
                       </div>
