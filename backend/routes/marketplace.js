@@ -15,8 +15,34 @@ router.get('/', async (req, res) => {
 // Add a new marketplace item
 router.post('/', async (req, res) => {
   try {
-    const { title, description, price, type, owner, category, condition } = req.body;
-    const item = new MarketplaceItem({ title, description, price, type, owner, category, condition });
+    const { 
+      title, 
+      description, 
+      price, 
+      type, 
+      owner,
+      ownerName,
+      ownerContact,
+      category, 
+      condition,
+      images,
+      location 
+    } = req.body;
+
+    const item = new MarketplaceItem({ 
+      title, 
+      description, 
+      price, 
+      type, 
+      owner,
+      ownerName,
+      ownerContact,
+      category, 
+      condition,
+      images,
+      location 
+    });
+    
     await item.save();
     res.status(201).json(item);
   } catch (err) {
@@ -46,4 +72,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

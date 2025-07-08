@@ -17,6 +17,7 @@ import {
   Tag,
   Clock,
   X,
+  MessageCircle,
 } from "lucide-react";
 
 const API_URL = "http://localhost:5000/api/marketplace";
@@ -31,12 +32,26 @@ const Marketplace = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>(null);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     setMounted(true);
     fetchListings();
     return () => setMounted(false);
   }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("recentlyViewedMarketplace");
+    if (stored) setRecentlyViewed(JSON.parse(stored));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("recentlyViewedMarketplace", JSON.stringify(recentlyViewed));
+  }, [recentlyViewed]);
 
   const fetchListings = async () => {
     setLoading(true);
@@ -58,6 +73,7 @@ const Marketplace = () => {
       type: formData.type || 'sale',
       owner: formData.owner || prompt('Enter your email (for demo):') || 'anonymous',
       price: Number(formData.price),
+      images: imagePreview ? [imagePreview] : [],
     };
     try {
       const res = await fetch(API_URL, {
@@ -127,10 +143,24 @@ const Marketplace = () => {
 
   const conditions = ["New", "Like New", "Good", "Fair", "Poor"];
 
-  const filteredListings =
-    selectedCategory === "All Categories"
+  const filteredListings = (selectedCategory === "All Categories"
       ? listings
-      : listings.filter((listing) => listing.category === selectedCategory);
+    : listings.filter((listing) => listing.category === selectedCategory)
+  ).filter((listing) => {
+    const price = Number(listing.price);
+    const min = minPrice ? Number(minPrice) : -Infinity;
+    const max = maxPrice ? Number(maxPrice) : Infinity;
+    return price >= min && price <= max;
+  });
+
+  const handleViewListing = (listing: any) => {
+    setActiveItem(activeItem === listing.id ? null : listing.id);
+    setRecentlyViewed((prev) => {
+      const filtered = prev.filter((item) => item.id !== listing.id);
+      const updated = [listing, ...filtered].slice(0, 3); // keep max 3
+      return updated;
+    });
+  };
 
   return (
     // Removed outermost div with min-h-screen and direct bg/text colors and overflow-hidden.
@@ -284,22 +314,76 @@ const Marketplace = () => {
 
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Upload Image (optional)
+                      Your Name
                     </label>
-                    <div className="border border-dashed border-white/20 rounded-md p-8 text-center hover:bg-white/5 cursor-pointer transition-colors">
+                    <Input
+                      name="ownerName"
+                      placeholder="Your full name"
+                      className="bg-white/5 border-white/10"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Contact Email
+                    </label>
+                    <Input
+                      name="ownerContact"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      className="bg-white/5 border-white/10"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Images
+                    </label>
+                    <div
+                      className="border border-dashed border-white/20 rounded-md p-8 text-center hover:bg-white/5 cursor-pointer transition-colors"
+                      onDrop={e => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files[0];
+                        if (file && file.type.startsWith("image/")) {
+                          const reader = new FileReader();
+                          reader.onload = ev => setImagePreview(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                          setImageFile(file);
+                        }
+                      }}
+                      onDragOver={e => e.preventDefault()}
+                    >
                       <Plus size={24} className="mx-auto mb-2 text-white/50" />
                       <p className="text-sm text-white/70">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-white/50 mt-1">
-                        PNG, JPG or WEBP (max. 5MB)
+                        Click or drag and drop an image (JPG, PNG, WEBP)
                       </p>
                       <input
                         type="file"
-                        name="image"
-                        className="hidden"
                         accept="image/*"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file && file.type.startsWith("image/")) {
+                            const reader = new FileReader();
+                            reader.onload = ev => setImagePreview(ev.target?.result as string);
+                            reader.readAsDataURL(file);
+                            setImageFile(file);
+                          }
+                        }}
+                        id="marketplace-image-upload"
                       />
+                      <label htmlFor="marketplace-image-upload" className="cursor-pointer text-brand-purple underline block mt-2">Browse</label>
+                      <input
+                        type="url"
+                        placeholder="https://example.com/image.jpg"
+                        className="bg-white/5 border-white/10 mt-2 w-full"
+                        onBlur={e => setImagePreview(e.target.value)}
+                      />
+                      {imagePreview && (
+                        <img src={imagePreview} alt="Preview" className="mx-auto mt-4 max-h-32 rounded" />
+                      )}
                     </div>
                   </div>
 
@@ -383,18 +467,23 @@ const Marketplace = () => {
                     placeholder="Min"
                     className="w-full bg-white/5 border-white/10 focus:border-brand-purple/50 transition-colors"
                     type="number"
+                    value={minPrice}
+                    onChange={e => setMinPrice(e.target.value)}
                   />
                   <span>to</span>
                   <Input
                     placeholder="Max"
                     className="w-full bg-white/5 border-white/10 focus:border-brand-purple/50 transition-colors"
                     type="number"
+                    value={maxPrice}
+                    onChange={e => setMaxPrice(e.target.value)}
                   />
                 </div>
                 <Button
                   variant="secondary"
                   size="sm"
                   className="w-full mt-3 bg-white/10 hover:bg-white/20 text-white"
+                  onClick={() => {}} // No-op, filter is live
                 >
                   Apply
                 </Button>
@@ -410,20 +499,22 @@ const Marketplace = () => {
                   Recently Viewed
                 </h3>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
+                  {recentlyViewed.length === 0 ? (
+                    <div className="text-sm text-white/50">No recently viewed items.</div>
+                  ) : (
+                    recentlyViewed.map((item) => (
+                      <div key={item.id} className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
                     <div className="w-8 h-8 rounded flex items-center justify-center bg-white/10 text-lg">
-                      📚
+                          {item.images && item.images.length > 0 ? (
+                            <img src={item.images[0]} alt={item.title} className="w-8 h-8 object-cover rounded" />
+                          ) : (
+                            <span>📦</span>
+                          )}
                     </div>
-                    <div className="text-sm truncate">Economics Textbook</div>
+                        <div className="text-sm truncate">{item.title}</div>
                   </div>
-                  <div className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
-                    <div className="w-8 h-8 rounded flex items-center justify-center bg-white/10 text-lg">
-                      🎫
-                    </div>
-                    <div className="text-sm truncate">
-                      Tech Conference Ticket
-                    </div>
-                  </div>
+                    ))
+                  )}
                 </div>
               </motion.div>
             </div>
@@ -474,27 +565,31 @@ const Marketplace = () => {
                     },
                   }}
                   whileHover={{
-                    scale: 1.02,
-                    boxShadow: "0 0 25px rgba(142, 68, 173, 0.25)",
+                    scale: 1.03,
+                    boxShadow: "0 8px 32px 0 rgba(240,98,146,0.18)",
+                    transition: { type: "spring", stiffness: 300, damping: 20 },
                   }}
-                  className="rounded-xl bg-white/5 backdrop-blur-lg border border-white/10 p-5 hover:border-brand-purple/50 transition-all duration-300"
-                  onClick={() =>
-                    setActiveItem(activeItem === listing.id ? null : listing.id)
-                  }
+                  className="rounded-xl bg-white/5 backdrop-blur-lg border border-white/10 card-hover relative overflow-hidden group p-5 hover:border-brand-pink/60 hover:shadow-brand-pink/30 transition-all duration-500"
+                  onClick={() => handleViewListing(listing)}
                 >
-                  <div className="flex gap-4">
-                    {/* Image/Emoji Placeholder */}
-                    <div className="relative flex-shrink-0 w-16 h-16 group cursor-pointer">
+                  {/* Animated gradient overlay */}
+                  <div className="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="w-full h-full bg-gradient-to-br from-brand-pink/30 via-brand-purple/20 to-brand-pink/10 animate-float blur-2xl"></div>
+                  </div>
+                  <div className="flex gap-4 relative z-10">
+                    {/* Image Display */}
+                    <div className="relative flex-shrink-0 w-24 h-24 group cursor-pointer">
                       <div className="absolute inset-0 bg-gradient-to-r from-brand-purple/40 to-brand-pink/40 rounded-lg blur opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="relative w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center text-3xl overflow-hidden group">
-                        {(listing.images || []).map((image, index) => (
+                      <div className="relative w-24 h-24 rounded-lg bg-white/10 flex items-center justify-center text-3xl overflow-hidden group">
+                        {listing.images && listing.images.length > 0 ? (
                           <img
-                            key={index}
-                            src={image}
+                            src={listing.images[0]}
                             alt={listing.title}
                             className="w-full h-full object-cover"
                           />
-                        ))}
+                        ) : (
+                          <span className="text-4xl">📦</span>
+                        )}
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
                           <ZoomIn className="w-6 h-6 text-white" />
                         </div>
@@ -552,28 +647,19 @@ const Marketplace = () => {
                       <div className="flex justify-between items-center mt-3">
                         <span className="text-xs text-white/60 flex items-center">
                           <Clock size={12} className="mr-1" />
-                          {listing.listedOn} by {listing.seller}
+                          {listing.listedOn} by {listing.ownerName}
                         </span>
                         <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-white/10 hover:border-brand-purple/50 hover:bg-white/5"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                          >
-                            Contact
-                          </Button>
                           <Button
                             size="sm"
                             className="bg-gradient-to-r from-brand-purple to-brand-pink hover:opacity-90 transition-opacity"
                             onClick={(e) => {
                               e.stopPropagation();
+                              window.location.href = `mailto:${listing.ownerContact}`;
                             }}
                           >
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            Buy
+                            <MessageCircle className="h-4 w-4 mr-1" />
+                            Contact Seller
                           </Button>
                         </div>
                       </div>

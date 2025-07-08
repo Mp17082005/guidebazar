@@ -15,8 +15,36 @@ router.get('/', async (req, res) => {
 // Add a new startup
 router.post('/', async (req, res) => {
   try {
-    const { name, description, founder, website, location, tags, createdBy } = req.body;
-    const startup = new Startup({ name, description, founder, website, location, tags, createdBy });
+    const { 
+      name, 
+      description, 
+      founder, 
+      founderLinkedin,
+      foundedYear,
+      website, 
+      location, 
+      tags, 
+      positions,
+      createdBy,
+      industry,
+      logo
+    } = req.body;
+    
+    const startup = new Startup({ 
+      name, 
+      description, 
+      founder, 
+      founderLinkedin,
+      foundedYear,
+      website, 
+      location, 
+      tags, 
+      positions,
+      createdBy,
+      industry,
+      logo
+    });
+    
     await startup.save();
     res.status(201).json(startup);
   } catch (err) {
@@ -46,4 +74,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
