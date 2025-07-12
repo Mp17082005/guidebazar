@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-// Removed: import Navbar from "@/components/Navbar";
-// Removed: import Footer from "@/components/Footer";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,537 +17,525 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  FilterIcon,
-  Sparkles,
-  Plus,
-  X,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 
-// Renamed the main component from 'Events' to 'AdminEvents'
+interface Event {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  type: string;
+  attendees: number;
+  maxAttendees: number;
+  daysLeft: number;
+  image?: string;
+  link?: string;
+}
+
+const defaultEvents: Event[] = [
+  {
+    id: 1,
+    title: "Startup Pitch Competition",
+    description: "Present your startup idea to investors and industry experts.",
+    date: "2025-08-15",
+    time: "10:00 AM",
+    location: "TechHub Bangalore",
+    type: "startup",
+    attendees: 45,
+    maxAttendees: 100,
+    daysLeft: 35,
+    image: "/api/placeholder/400/250",
+    link: "https://example.com/register/startup-pitch"
+  },
+  {
+    id: 2,
+    title: "AI & Machine Learning Workshop",
+    description: "Hands-on workshop on latest AI trends and implementations.",
+    date: "2025-08-22",
+    time: "2:00 PM",
+    location: "Virtual Event",
+    type: "workshop",
+    attendees: 120,
+    maxAttendees: 150,
+    daysLeft: 42,
+    image: "/api/placeholder/400/250",
+    link: "https://zoom.us/meeting/ai-ml-workshop"
+  }
+];
+
 const AdminEvents = () => {
-  const [city, setCity] = useState<string>("all");
-  const [eventType, setEventType] = useState<string>("all");
-  const [mounted, setMounted] = useState(false);
-  const [activeEvent, setActiveEvent] = useState<number | null>(null);
-  const [showHostForm, setShowHostForm] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: "Tech Startup Summit 2025",
-      date: "June 15, 2025",
-      time: "10:00 AM - 4:00 PM",
-      location: "Mumbai",
-      type: "startup",
-      attendees: 350,
-      daysLeft: 12,
-      description:
-        "Connect with tech founders and investors from across India.",
-      image: "https://images.unsplash.com/photo-1551038247-3d9af20df552",
-    },
-    {
-      id: 2,
-      title: "Financial Planning Workshop",
-      date: "June 3, 2025",
-      time: "2:00 PM - 5:00 PM",
-      location: "Online",
-      type: "finance",
-      attendees: 120,
-      daysLeft: 5,
-      description:
-        "Learn essential financial skills for students and early professionals.",
-      image: "https://images.unsplash.com/photo-1494891848038-7bd202a2afeb",
-    },
-    {
-      id: 3,
-      title: "Code Wars: National Hackathon",
-      date: "July 8-10, 2025",
-      time: "48 hours",
-      location: "Bangalore",
-      type: "hackathon",
-      attendees: 500,
-      daysLeft: 25,
-      description:
-        "Build innovative solutions and compete for prizes worth ₹5 Lakhs.",
-      image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5",
-    },
-    {
-      id: 4,
-      title: "Future of AI: Career Paths",
-      date: "June 20, 2025",
-      time: "6:00 PM - 8:00 PM",
-      location: "Delhi",
-      type: "webinar",
-      attendees: 250,
-      daysLeft: 15,
-      description:
-        "Discover how AI is transforming industries and creating new opportunities.",
-      image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
-    },
-  ];
-
-  const filteredEvents = upcomingEvents.filter((event) => {
-    return (
-      (city === "all" ||
-        event.location === city ||
-        (city === "online" && event.location === "Online")) &&
-      (eventType === "all" || event.type === eventType)
-    );
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isAddingEvent, setIsAddingEvent] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<Partial<Event>>({
+    title: "",
+    description: "",
+    date: "",
+    time: "",
+    location: "",
+    type: "startup",
+    attendees: 0,
+    maxAttendees: 100,
+    daysLeft: 0,
+    image: "",
+    link: ""
   });
 
-  const handleHostEvent = (formData: any) => {
-    console.log("New event submitted:", formData);
-    setShowHostForm(false);
-    // Here you would typically send the data to your backend
+  // Load events from backend API on component mount
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/events');
+        const data = await response.json();
+        
+        if (data.success) {
+          // Calculate days left for each event
+          const eventsWithDaysLeft = data.events.map((event: Event) => ({
+            ...event,
+            daysLeft: calculateDaysLeft(event.date)
+          }));
+          setEvents(eventsWithDaysLeft);
+        } else {
+          console.error('Failed to fetch events:', data.message);
+          // Fallback to default events if API fails
+          setEvents(defaultEvents);
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        // Fallback to default events if API fails
+        setEvents(defaultEvents);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Remove the localStorage save effect since we're using backend API
+  // useEffect(() => {
+  //   if (events.length > 0) {
+  //     localStorage.setItem('adminEvents', JSON.stringify(events));
+  //   }
+  // }, [events]);
+
+  const calculateDaysLeft = (dateString: string) => {
+    const eventDate = new Date(dateString);
+    const today = new Date();
+    const diffTime = eventDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const handleInputChange = (field: keyof Event, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
+      ...(field === 'date' && { daysLeft: calculateDaysLeft(value as string) })
+    }));
+  };
+
+  const handleAddEvent = async () => {
+    if (!formData.title || !formData.date) return;
+
+    const eventData = {
+      title: formData.title!,
+      description: formData.description || "",
+      date: formData.date!,
+      time: formData.time || "10:00 AM",
+      location: formData.location || "TBA",
+      type: formData.type || "startup",
+      maxAttendees: formData.maxAttendees || 100,
+      link: formData.link || ""
+    };
+
+    try {
+      const response = await fetch('http://localhost:5001/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        const newEventWithDaysLeft = {
+          ...data.event,
+          daysLeft: calculateDaysLeft(data.event.date)
+        };
+        setEvents(prev => [...prev, newEventWithDaysLeft]);
+        
+        setFormData({
+          title: "",
+          description: "",
+          date: "",
+          time: "",
+          location: "",
+          type: "startup",
+          attendees: 0,
+          maxAttendees: 100,
+          daysLeft: 0,
+          image: "",
+          link: ""
+        });
+        setIsAddingEvent(false);
+      } else {
+        console.error('Failed to create event:', data.message);
+        // You could show an error message to the user here
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+      // You could show an error message to the user here
+    }
+  };
+
+  const handleEditEvent = (eventId: number) => {
+    const event = events.find(e => e.id === eventId);
+    if (event) {
+      setFormData(event);
+      setEditingEventId(eventId);
+    }
+  };
+
+  const handleUpdateEvent = async () => {
+    if (!formData.title || !formData.date || editingEventId === null) return;
+
+    const updateData = {
+      title: formData.title!,
+      description: formData.description || "",
+      date: formData.date!,
+      time: formData.time || "10:00 AM",
+      location: formData.location || "TBA",
+      type: formData.type || "startup",
+      attendees: formData.attendees || 0,
+      maxAttendees: formData.maxAttendees || 100,
+      link: formData.link || ""
+    };
+
+    try {
+      const response = await fetch(`http://localhost:5001/api/events/${editingEventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        const updatedEventWithDaysLeft = {
+          ...data.event,
+          daysLeft: calculateDaysLeft(data.event.date)
+        };
+        
+        setEvents(prev => prev.map(event => 
+          event.id === editingEventId ? updatedEventWithDaysLeft : event
+        ));
+        
+        setEditingEventId(null);
+        setFormData({
+          title: "",
+          description: "",
+          date: "",
+          time: "",
+          location: "",
+          type: "startup",
+          attendees: 0,
+          maxAttendees: 100,
+          daysLeft: 0,
+          image: "",
+          link: ""
+        });
+      } else {
+        console.error('Failed to update event:', data.message);
+        // You could show an error message to the user here
+      }
+    } catch (error) {
+      console.error('Error updating event:', error);
+      // You could show an error message to the user here
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: number) => {
+    if (confirm("Are you sure you want to delete this event?")) {
+      try {
+        const response = await fetch(`http://localhost:5001/api/events/${eventId}`, {
+          method: 'DELETE',
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          setEvents(prev => prev.filter(event => event.id !== eventId));
+        } else {
+          console.error('Failed to delete event:', data.message);
+          // You could show an error message to the user here
+        }
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        // You could show an error message to the user here
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      date: "",
+      time: "",
+      location: "",
+      type: "startup",
+      attendees: 0,
+      maxAttendees: 100,
+      daysLeft: 0,
+      image: "",
+      link: ""
+    });
+    setIsAddingEvent(false);
+    setEditingEventId(null);
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
-        <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
-        <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="container mx-auto px-4"
+    >
+      <div className="text-center mb-8">
+        <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-brand-purple to-brand-pink">
+          Admin - Events Management
+        </h1>
+        <p className="text-xl text-white/80">
+          Add, edit, and manage events for your platform
+        </p>
       </div>
 
-      {/* Removed: <Navbar /> */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="container mx-auto px-4 pt-24 pb-16 relative"
-      >
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-          >
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
+      {/* Add New Event Button */}
+      <div className="flex justify-center mb-8">
+        <Button
+          onClick={() => setIsAddingEvent(true)}
+          className="bg-gradient-to-r from-brand-purple to-brand-pink hover:opacity-90"
+          disabled={isAddingEvent || editingEventId !== null}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Event
+        </Button>
+      </div>
+
+      {/* Add/Edit Event Form */}
+      {(isAddingEvent || editingEventId !== null) && (
+        <Card className="bg-gradient-to-br from-white/5 to-white/10 border-white/10 mb-8">
+          <CardHeader>
+            <CardTitle className="text-white">
+              {editingEventId ? "Edit Event" : "Add New Event"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-brand-purple to-brand-pink">
-                  Next-Gen Events
-                </h1>
-                <p className="text-lg md:text-xl mb-8 text-foreground/80 max-w-2xl">
-                  Discover cutting-edge hackathons, workshops, and learning
-                  opportunities across the digital frontier.
-                </p>
+                <label className="text-white/80 text-sm mb-2 block">Event Title *</label>
+                <Input
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  placeholder="Enter event title"
+                  className="bg-white/10 border-white/20 text-white"
+                />
               </div>
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">Event Type</label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => handleInputChange('type', value)}
+                >
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black/90 border-white/20 text-white">
+                    <SelectItem value="startup">Startup</SelectItem>
+                    <SelectItem value="tech">Tech</SelectItem>
+                    <SelectItem value="workshop">Workshop</SelectItem>
+                    <SelectItem value="seminar">Seminar</SelectItem>
+                    <SelectItem value="conference">Conference</SelectItem>
+                    <SelectItem value="networking">Networking</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-white/80 text-sm mb-2 block">Description</label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Enter event description"
+                className="bg-white/10 border-white/20 text-white"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">Date *</label>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => handleInputChange('date', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">Time</label>
+                <Input
+                  value={formData.time}
+                  onChange={(e) => handleInputChange('time', e.target.value)}
+                  placeholder="e.g., 10:00 AM"
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">Location</label>
+                <Input
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  placeholder="Enter location"
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">Current Attendees</label>
+                <Input
+                  type="number"
+                  value={formData.attendees}
+                  onChange={(e) => handleInputChange('attendees', parseInt(e.target.value) || 0)}
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">Max Attendees</label>
+                <Input
+                  type="number"
+                  value={formData.maxAttendees}
+                  onChange={(e) => handleInputChange('maxAttendees', parseInt(e.target.value) || 100)}
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-white/80 text-sm mb-2 block">Image URL</label>
+                <Input
+                  value={formData.image}
+                  onChange={(e) => handleInputChange('image', e.target.value)}
+                  placeholder="Enter image URL"
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-white/80 text-sm mb-2 block">Event Link (Registration/Join URL)</label>
+              <Input
+                type="url"
+                value={formData.link}
+                onChange={(e) => handleInputChange('link', e.target.value)}
+                placeholder="https://example.com/event-registration"
+                className="bg-white/10 border-white/20 text-white"
+              />
+            </div>
+
+            <div className="flex gap-4 pt-4">
               <Button
-                onClick={() => setShowHostForm(true)}
-                className="bg-gradient-to-r from-brand-purple to-brand-pink hover:opacity-90 transition-opacity gap-2"
+                onClick={editingEventId ? handleUpdateEvent : handleAddEvent}
+                className="bg-green-600 hover:bg-green-700"
               >
-                <Plus size={18} />
-                Host Event
+                <Save className="h-4 w-4 mr-2" />
+                {editingEventId ? "Update Event" : "Save Event"}
+              </Button>
+              <Button
+                onClick={resetForm}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
               </Button>
             </div>
-          </motion.div>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Host Event Form Modal */}
-          <AnimatePresence>
-            {showHostForm && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                onClick={() => setShowHostForm(false)}
-              >
-                <motion.div
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.95, opacity: 0 }}
-                  className="bg-background border border-white/10 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">Host New Event</h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowHostForm(false)}
-                    >
-                      <X size={20} />
-                    </Button>
-                  </div>
-
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(
-                        e.target as HTMLFormElement
-                      );
-                      handleHostEvent(Object.fromEntries(formData));
-                    }}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Event Title
-                      </label>
-                      <Input
-                        name="title"
-                        placeholder="Enter event title"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Date
-                        </label>
-                        <Input name="date" type="date" required />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Time
-                        </label>
-                        <Input name="time" type="time" required />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Location
-                      </label>
-                      <Input
-                        name="location"
-                        placeholder="City or 'Online'"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Event Type
-                      </label>
-                      <Select name="type" required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select event type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tech">Tech</SelectItem>
-                          <SelectItem value="startup">Startup</SelectItem>
-                          <SelectItem value="webinar">Webinar</SelectItem>
-                          <SelectItem value="hackathon">Hackathon</SelectItem>
-                          <SelectItem value="finance">Finance</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Description
-                      </label>
-                      <Textarea
-                        name="description"
-                        placeholder="Describe your event"
-                        rows={3}
-                        required
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-brand-purple to-brand-pink"
-                    >
-                      Create Event
-                    </Button>
-                  </form>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Filters */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="backdrop-blur-lg bg-background/30 border border-white/10 rounded-xl p-4 mb-8"
+      {/* Events List */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {events.map((event) => (
+          <Card
+            key={event.id}
+            className="bg-gradient-to-br from-white/5 to-white/10 border-white/10 hover:border-brand-purple/40 transition-all duration-300"
           >
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex items-center gap-2 text-foreground/70">
-                <FilterIcon size={18} className="text-brand-purple" />
-                <span className="text-sm">Filter events:</span>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-white text-lg">{event.title}</CardTitle>
+                <Badge className={`${
+                  event.type === 'startup' ? 'bg-brand-purple/20 text-brand-purple' :
+                  event.type === 'tech' ? 'bg-blue-500/20 text-blue-400' :
+                  event.type === 'workshop' ? 'bg-green-500/20 text-green-400' :
+                  'bg-orange-500/20 text-orange-400'
+                }`}>
+                  {event.type}
+                </Badge>
               </div>
-              <div className="flex flex-wrap gap-4">
-                <Select value={city} onValueChange={setCity}>
-                  <SelectTrigger className="w-[160px] bg-background/50 border-white/10">
-                    <SelectValue placeholder="Filter by location" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background/80 backdrop-blur-md border-white/10">
-                    <SelectItem value="all">All Locations</SelectItem>
-                    <SelectItem value="online">Online</SelectItem>
-                    <SelectItem value="Mumbai">Mumbai</SelectItem>
-                    <SelectItem value="Delhi">Delhi</SelectItem>
-                    <SelectItem value="Bangalore">Bangalore</SelectItem>
-                    <SelectItem value="Hyderabad">Hyderabad</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={eventType} onValueChange={setEventType}>
-                  <SelectTrigger className="w-[160px] bg-background/50 border-white/10">
-                    <SelectValue placeholder="Filter by type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background/80 backdrop-blur-md border-white/10">
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="tech">Tech</SelectItem>
-                    <SelectItem value="startup">Startup</SelectItem>
-                    <SelectItem value="webinar">Webinar</SelectItem>
-                    <SelectItem value="hackathon">Hackathon</SelectItem>
-                    <SelectItem value="finance">Finance</SelectItem>
-                  </SelectContent>
-                </Select>
+              <CardDescription className="text-white/70 text-sm">
+                {event.description}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm text-white/80 mb-4">
+                <div><strong>Date:</strong> {event.date}</div>
+                <div><strong>Time:</strong> {event.time}</div>
+                <div><strong>Location:</strong> {event.location}</div>
+                <div><strong>Attendees:</strong> {event.attendees}/{event.maxAttendees}</div>
+                <div><strong>Days Left:</strong> {event.daysLeft}</div>
               </div>
-            </div>
-          </motion.div>
-
-          {/* View Switcher */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            <Tabs defaultValue="list" className="mb-8">
-              <TabsList className="bg-background/30 backdrop-blur-sm border border-white/10">
-                <TabsTrigger
-                  value="list"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-brand-purple/90 data-[state=active]:to-brand-pink/90 data-[state=active]:text-white"
+              
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleEditEvent(event.id)}
+                  className="bg-blue-600 hover:bg-blue-700 flex-1"
+                  disabled={isAddingEvent || editingEventId !== null}
                 >
-                  List View
-                </TabsTrigger>
-                <TabsTrigger
-                  value="calendar"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-brand-purple/90 data-[state=active]:to-brand-pink/90 data-[state=active]:text-white"
+                  <Edit className="h-3 w-3 mr-1" />
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleDeleteEvent(event.id)}
+                  className="bg-red-600 hover:bg-red-700 flex-1"
+                  disabled={isAddingEvent || editingEventId !== null}
                 >
-                  Calendar View
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="list" className="mt-6">
-                <motion.div
-                  className="space-y-6"
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: {},
-                    visible: {
-                      transition: {
-                        staggerChildren: 0.15,
-                      },
-                    },
-                  }}
-                >
-                  {filteredEvents.map((event) => (
-                    <motion.div
-                      key={event.id}
-                      layout
-                      whileHover={{ scale: 1.02 }}
-                      variants={{
-                        hidden: { opacity: 0, y: 20 },
-                        visible: {
-                          opacity: 1,
-                          y: 0,
-                          transition: { duration: 0.5 },
-                        },
-                      }}
-                      className="rounded-xl overflow-hidden bg-background/5 backdrop-blur-lg border border-white/10 hover:border-white/20 transition-all duration-300"
-                    >
-                      <div className="flex flex-col md:flex-row">
-                        <div
-                          className="md:w-1/4 h-40 md:h-auto bg-cover bg-center relative"
-                          style={{ backgroundImage: `url(${event.image})` }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
-                        </div>
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-                        <div className="flex-1 p-6">
-                          <div className="flex flex-wrap justify-between gap-4">
-                            <div>
-                              <div className="flex items-center mb-2">
-                                <div className="mr-2 px-3 py-1 bg-brand-purple/20 text-brand-purple text-xs font-medium rounded-full uppercase tracking-wider flex items-center">
-                                  <Sparkles size={12} className="mr-1" />
-                                  {event.type}
-                                </div>
-                                <div className="text-sm font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
-                                  {event.daysLeft} days left
-                                </div>
-                              </div>
-
-                              <h3 className="text-xl font-semibold mb-2 text-foreground group-hover:text-brand-purple transition-colors">
-                                {event.title}
-                              </h3>
-
-                              <div className="flex flex-wrap gap-y-2 gap-x-4 text-sm text-foreground/70 mb-3">
-                                <div className="flex items-center gap-1">
-                                  <Calendar
-                                    size={14}
-                                    className="text-brand-purple"
-                                  />
-                                  <span>{event.date}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Clock
-                                    size={14}
-                                    className="text-brand-purple"
-                                  />
-                                  <span>{event.time}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <MapPin
-                                    size={14}
-                                    className="text-brand-purple"
-                                  />
-                                  <span>{event.location}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Users
-                                    size={14}
-                                    className="text-brand-purple"
-                                  />
-                                  <span>{event.attendees} attending</span>
-                                </div>
-                              </div>
-
-                              <p className="text-foreground/80">
-                                {event.description}
-                              </p>
-                            </div>
-
-                            <div className="flex flex-col items-end gap-2">
-                              <Button
-                                size="sm"
-                                className="relative overflow-hidden group bg-gradient-to-r from-brand-purple to-brand-pink hover:opacity-90 transition-all"
-                              >
-                                <span className="relative z-10">
-                                  Join Event
-                                </span>
-                                <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-
-                  {filteredEvents.length === 0 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-center py-20"
-                    >
-                      <div className="text-6xl mb-4">🔍</div>
-                      <h3 className="text-xl font-semibold mb-2">
-                        No events found
-                      </h3>
-                      <p className="text-foreground/70">
-                        Try adjusting your filters
-                      </p>
-                    </motion.div>
-                  )}
-                </motion.div>
-              </TabsContent>
-
-              <TabsContent value="calendar" className="mt-6">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="bg-background/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden"
-                >
-                  <div className="p-8">
-                    <div className="flex items-center justify-center space-x-4 mb-8">
-                      <Button variant="outline" size="sm">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        <span>Previous</span>
-                      </Button>
-                      <h3 className="text-xl font-semibold">June 2025</h3>
-                      <Button variant="outline" size="sm">
-                        <span>Next</span>
-                        <Calendar className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-1">
-                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                        (day) => (
-                          <div
-                            key={day}
-                            className="text-center text-xs font-medium text-foreground/60 p-2"
-                          >
-                            {day}
-                          </div>
-                        )
-                      )}
-
-                      {Array.from({ length: 35 }).map((_, i) => {
-                        const day = i - 2;
-                        const hasEvent = day === 3 || day === 15 || day === 20;
-
-                        return (
-                          <motion.div
-                            key={i}
-                            className={`
-                              border border-white/5 rounded-md p-2 min-h-[70px] relative
-                              ${day < 1 || day > 30 ? "opacity-30" : ""}
-                              ${
-                                hasEvent
-                                  ? "bg-brand-purple/10"
-                                  : "hover:bg-white/5"
-                              }
-                            `}
-                            whileHover={{ scale: 1.03 }}
-                          >
-                            <div className="text-xs">
-                              {day < 1 ? 31 + day : day > 30 ? day - 30 : day}
-                            </div>
-                            {hasEvent && (
-                              <div className="absolute bottom-1 left-1 right-1">
-                                <div className="text-[10px] bg-brand-purple/20 text-brand-purple rounded px-1 py-0.5 truncate">
-                                  {day === 3
-                                    ? "Financial Workshop"
-                                    : day === 15
-                                    ? "Tech Summit"
-                                    : "AI Careers"}
-                                </div>
-                              </div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="text-center mt-8">
-                      <p className="text-sm text-foreground/70">
-                        Calendar view is available for preview. Upcoming
-                        feature: Event details on click.
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              </TabsContent>
-            </Tabs>
-          </motion.div>
+      {events.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-white/60 text-lg">No events found. Add your first event!</p>
         </div>
-      </motion.div>
-      {/* Removed: <Footer /> */}
-    </div>
+      )}
+    </motion.div>
   );
 };
 
-// Changed export default from Events to AdminEvents
 export default AdminEvents;

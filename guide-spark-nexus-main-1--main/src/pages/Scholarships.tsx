@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 // REMOVED: import Navbar from "@/components/Navbar";
 // REMOVED: import Footer from "@/components/Footer";
 import {
@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -17,10 +18,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Calendar, Users, DollarSign } from "lucide-react";
+import { Globe, Calendar, Users, DollarSign, Trash2 } from "lucide-react";
 
-const scholarships = [
+interface Scholarship {
+  id: number;
+  title: string;
+  type: string;
+  country: string;
+  amount: string;
+  deadline: string;
+  eligibility: string;
+  description: string;
+}
+
+const defaultScholarships: Scholarship[] = [
   {
     id: 1,
     title: "Fulbright Scholarship Program",
@@ -65,11 +76,102 @@ const scholarships = [
     description:
       "Department of Science and Technology fellowship for pursuing research in basic sciences.",
   },
+  {
+    id: 5,
+    title: "Kishore Vaigyanik Protsahan Yojana (KVPY)",
+    type: "National",
+    country: "India",
+    amount: "₹7,000/month",
+    deadline: "2025-01-20",
+    eligibility: "Students pursuing basic sciences",
+    description:
+      "Fellowship program by IISc and IISER for students interested in research careers in science.",
+  },
+  {
+    id: 6,
+    title: "JN Tata Endowment Scholarship",
+    type: "International",
+    country: "Multiple",
+    amount: "Up to ₹10 Lakh",
+    deadline: "2025-03-31",
+    eligibility: "Indian students for higher education abroad",
+    description:
+      "Financial assistance for Indian students pursuing higher education at recognized institutions abroad.",
+  },
+  {
+    id: 7,
+    title: "Erasmus Mundus Scholarships",
+    type: "International",
+    country: "Europe",
+    amount: "€1,400/month",
+    deadline: "2025-01-15",
+    eligibility: "Master's and PhD students",
+    description:
+      "EU-funded scholarships for international students to study in Europe.",
+  },
+  {
+    id: 8,
+    title: "Chevening Scholarships",
+    type: "International",
+    country: "UK",
+    amount: "Full funding",
+    deadline: "2024-11-05",
+    eligibility: "Outstanding emerging leaders",
+    description:
+      "UK government's global scholarship programme for one-year master's degrees.",
+  },
+  {
+    id: 9,
+    title: "Aditya Birla Scholarship",
+    type: "National",
+    country: "India",
+    amount: "₹2.5 Lakh/year",
+    deadline: "2025-04-30",
+    eligibility: "IIT, IIM, and other premier institute students",
+    description:
+      "Merit-based scholarship for students in premier engineering and management institutes.",
+  },
+  {
+    id: 10,
+    title: "Reliance Foundation Scholarships",
+    type: "National",
+    country: "India",
+    amount: "₹6 Lakh/year",
+    deadline: "2025-05-15",
+    eligibility: "Undergraduate students",
+    description:
+      "Comprehensive scholarship program covering tuition and living expenses for meritorious students.",
+  },
 ];
 
 const Scholarships = () => {
   const [selectedCountry, setSelectedCountry] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+
+  // Load scholarships from backend API
+  useEffect(() => {
+    const fetchScholarships = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/scholarships');
+        const data = await response.json();
+        
+        if (data.success) {
+          setScholarships(data.scholarships);
+        } else {
+          console.error('Failed to fetch scholarships:', data.message);
+          // Fallback to default scholarships if API fails
+          setScholarships(defaultScholarships);
+        }
+      } catch (error) {
+        console.error('Error fetching scholarships:', error);
+        // Fallback to default scholarships if API fails
+        setScholarships(defaultScholarships);
+      }
+    };
+
+    fetchScholarships();
+  }, []);
 
   const filteredScholarships = scholarships.filter((scholarship) => {
     return (
@@ -84,6 +186,31 @@ const Scholarships = () => {
 
   const handleTypeChange = (value: string) => {
     setSelectedType(value);
+  };
+
+  const handleDeleteScholarship = async (scholarshipId: number) => {
+    if (!confirm("Are you sure you want to delete this scholarship?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5001/api/scholarships/${scholarshipId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setScholarships(prev => prev.filter(scholarship => scholarship.id !== scholarshipId));
+        console.log("Scholarship deleted successfully");
+      } else {
+        console.error('Failed to delete scholarship:', data.message);
+        alert('Failed to delete scholarship. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting scholarship:', error);
+      alert('Error deleting scholarship. Please try again.');
+    }
   };
 
   return (
@@ -111,34 +238,56 @@ const Scholarships = () => {
         </p>
       </motion.div>
 
-      {/* Filters */}
+      {/* Enhanced Stats Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.6 }}
+        className="flex flex-wrap justify-center gap-4 mb-8"
+      >
+        <Badge className="bg-brand-purple/20 text-brand-purple border-brand-purple/30 px-4 py-2">
+          <span className="font-semibold">{scholarships.length}</span> Active Scholarships
+        </Badge>
+        <Badge className="bg-brand-pink/20 text-brand-pink border-brand-pink/30 px-4 py-2">
+          <span className="font-semibold">
+            {scholarships.filter(s => s.type === "International").length}
+          </span> International Opportunities
+        </Badge>
+        <Badge className="bg-green-500/20 text-green-400 border-green-400/30 px-4 py-2">
+          Worth Over <span className="font-semibold">₹50 Crore</span> Total
+        </Badge>
+      </motion.div>
+
+      {/* Enhanced Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.6 }}
         className="flex flex-wrap gap-4 mb-8 justify-center"
       >
         <Select value={selectedCountry} onValueChange={handleCountryChange}>
-          <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white">
+          <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white hover:bg-white/15 transition-colors">
             <SelectValue placeholder="Select Country" />
           </SelectTrigger>
           <SelectContent className="bg-black/90 border-white/20 text-white">
             <SelectItem value="all">All Countries</SelectItem>
-            <SelectItem value="USA">USA</SelectItem>
-            <SelectItem value="Germany">Germany</SelectItem>
-            <SelectItem value="UK">UK</SelectItem>
-            <SelectItem value="India">India</SelectItem>
+            <SelectItem value="USA">🇺🇸 USA</SelectItem>
+            <SelectItem value="Germany">🇩🇪 Germany</SelectItem>
+            <SelectItem value="UK">🇬🇧 UK</SelectItem>
+            <SelectItem value="India">🇮🇳 India</SelectItem>
+            <SelectItem value="Europe">🇪🇺 Europe</SelectItem>
+            <SelectItem value="Multiple">🌍 Multiple Countries</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={selectedType} onValueChange={handleTypeChange}>
-          <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white">
+          <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white hover:bg-white/15 transition-colors">
             <SelectValue placeholder="Select Type" />
           </SelectTrigger>
           <SelectContent className="bg-black/90 border-white/20 text-white">
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="National">National</SelectItem>
-            <SelectItem value="International">International</SelectItem>
+            <SelectItem value="National">🏠 National</SelectItem>
+            <SelectItem value="International">✈️ International</SelectItem>
           </SelectContent>
         </Select>
       </motion.div>
@@ -196,6 +345,15 @@ const Scholarships = () => {
               <Button className="mt-4 bg-gradient-to-r from-brand-purple to-brand-pink hover:opacity-90 w-full">
                 Apply Now
               </Button>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                className="mt-2 w-full"
+                onClick={() => handleDeleteScholarship(scholarship.id)}
+              >
+                <Trash2 size={16} className="mr-2" />
+                Delete
+              </Button>
             </CardContent>
           </Card>
         ))}
@@ -205,4 +363,3 @@ const Scholarships = () => {
 };
 
 export default Scholarships;
-  

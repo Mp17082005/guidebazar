@@ -1,406 +1,311 @@
 import { useState, useEffect } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
-// Removed: import Navbar from "@/components/Navbar";
-import Hero from "@/components/Hero";
-import NewsTicker from "@/components/NewsTicker";
-import TrendingContent from "@/components/TrendingContent";
-import EventCarousel from "@/components/EventCarousel";
-// Removed: import Footer from "@/components/Footer";
-import Timeline from "@/components/Timeline";
-import StatsSection from "@/components/StatsSection";
-import StudentDiscountPreview from "@/components/StudentDiscountPreview";
-import GradientSeparator from "@/components/GradientSeparator";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { 
+  Calendar, 
+  GraduationCap, 
+  TrendingUp, 
+  Settings, 
+  Plus,
+  Edit,
+  Eye,
+  Percent
+} from "lucide-react";
 
-// Renamed the main component from 'Index' to 'AdminIndex'
+interface Event {
+  id: number;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  description: string;
+  category: string;
+  capacity: number;
+  price: number;
+  organizer: string;
+  image?: string;
+  tags: string[];
+  isOnline: boolean;
+  isFeatured: boolean;
+}
+
+interface Scholarship {
+  id: number;
+  title: string;
+  provider: string;
+  amount: string;
+  type: string;
+  deadline: string;
+  eligibility: string;
+  description: string;
+  applicationUrl: string;
+  country: string;
+  flag: string;
+  category: string;
+  tags: string[];
+  isFullyFunded: boolean;
+  applicationFee: number;
+}
+
+interface StudentDiscount {
+  id: number;
+  brand: string;
+  title: string;
+  description: string;
+  category: string;
+  verification: string;
+  discount: string;
+  originalPrice: string;
+  eligibility: string;
+  instructions: string;
+  verificationUrl: string;
+  link: string;
+  rating: number;
+  usersUsed: number;
+  savings: string;
+  isPopular: boolean;
+  isVerified: boolean;
+}
+
 const AdminIndex = () => {
   const [mounted, setMounted] = useState(false);
-  const { scrollYProgress } = useScroll();
-
-  // Parallax effects for background elements
-  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
-  const glowY1 = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
-  const glowY2 = useTransform(scrollYProgress, [0, 1], ["0%", "-30%"]);
+  const [stats, setStats] = useState({
+    totalEvents: 0,
+    totalScholarships: 0,
+    totalDiscounts: 0,
+    activeEvents: 0,
+    internationalScholarships: 0,
+    verifiedDiscounts: 0
+  });
 
   useEffect(() => {
     setMounted(true);
+    
+    // Load stats from localStorage
+    const loadStats = () => {
+      const savedEvents = localStorage.getItem('adminEvents');
+      const savedScholarships = localStorage.getItem('adminScholarships');
+      const savedDiscounts = localStorage.getItem('adminStudentDiscounts');
+      
+      let events: Event[] = [];
+      let scholarships: Scholarship[] = [];
+      let discounts: StudentDiscount[] = [];
+      
+      if (savedEvents) {
+        events = JSON.parse(savedEvents);
+      }
+      if (savedScholarships) {
+        scholarships = JSON.parse(savedScholarships);
+      }
+      if (savedDiscounts) {
+        discounts = JSON.parse(savedDiscounts);
+      }
+      
+      const today = new Date();
+      const activeEvents = events.filter((event: Event) => {
+        const eventDate = new Date(event.date);
+        return eventDate >= today;
+      }).length;
+      
+      const internationalScholarships = scholarships.filter((scholarship: Scholarship) => 
+        scholarship.type === 'International'
+      ).length;
+      
+      const verifiedDiscounts = discounts.filter((discount: StudentDiscount) => 
+        discount.isVerified === true
+      ).length;
+      
+      setStats({
+        totalEvents: events.length,
+        totalScholarships: scholarships.length,
+        totalDiscounts: discounts.length,
+        activeEvents,
+        internationalScholarships,
+        verifiedDiscounts
+      });
+    };
+    
+    loadStats();
     return () => setMounted(false);
   }, []);
 
-  // Page transition variants
-  const pageVariants = {
-    initial: { opacity: 0 },
-    animate: {
-      opacity: 1,
-      transition: {
-        duration: 0.8,
-        staggerChildren: 0.2,
-      },
-    },
-  };
-
-  const sectionVariants = {
-    initial: { opacity: 0, y: 50 },
-    animate: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.8,
-        ease: "easeOut",
-      },
-    },
-  };
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full"
-        />
-      </div>
-    );
-  }
+  if (!mounted) return null;
 
   return (
     <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      className="min-h-screen text-white overflow-x-hidden"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="container mx-auto px-4"
     >
-      {/* Black background moved to the farthest back for animation visibility */}
-      <div className="fixed inset-0 -z-50 bg-black" />
-      {/* Enhanced Animated background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        {/* Grid pattern with animation */}
-        <motion.div
-          style={{ y: backgroundY }}
-          className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"
-        />
-
-        {/* Animated border lines */}
-        <motion.div
-          className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand-purple/20 to-transparent"
-          animate={{
-            background: [
-              "linear-gradient(90deg, transparent, rgba(209, 58, 255, 0.2), transparent)",
-              "linear-gradient(90deg, transparent, rgba(255, 77, 160, 0.3), transparent)",
-              "linear-gradient(90deg, transparent, rgba(209, 58, 255, 0.2), transparent)",
-            ],
-          }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand-purple/20 to-transparent"
-          animate={{
-            background: [
-              "linear-gradient(90deg, transparent, rgba(255, 77, 160, 0.2), transparent)",
-              "linear-gradient(90deg, transparent, rgba(209, 58, 255, 0.3), transparent)",
-              "linear-gradient(90deg, transparent, rgba(255, 77, 160, 0.2), transparent)",
-            ],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2,
-          }}
-        />
-        <motion.div
-          className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-brand-purple/20 to-transparent"
-          animate={{
-            background: [
-              "linear-gradient(180deg, transparent, rgba(209, 58, 255, 0.2), transparent)",
-              "linear-gradient(180deg, transparent, rgba(255, 77, 160, 0.3), transparent)",
-              "linear-gradient(180deg, transparent, rgba(209, 58, 255, 0.2), transparent)",
-            ],
-          }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1,
-          }}
-        />
-        <motion.div
-          className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-brand-purple/20 to-transparent"
-          animate={{
-            background: [
-              "linear-gradient(180deg, transparent, rgba(255, 77, 160, 0.2), transparent)",
-              "linear-gradient(180deg, transparent, rgba(209, 58, 255, 0.3), transparent)",
-              "linear-gradient(180deg, transparent, rgba(255, 77, 160, 0.2), transparent)",
-            ],
-          }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 3,
-          }}
-        />
-
-        {/* Enhanced animated glow spots with parallax */}
-        <motion.div
-          style={{ y: glowY1 }}
-          className="absolute top-1/4 left-1/4 w-64 h-64 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-30"
-          animate={{
-            background: [
-              "radial-gradient(circle, rgba(209, 58, 255, 0.2), transparent)",
-              "radial-gradient(circle, rgba(255, 77, 160, 0.3), transparent)",
-              "radial-gradient(circle, rgba(209, 58, 255, 0.2), transparent)",
-            ],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            background: { duration: 6, repeat: Infinity, ease: "easeInOut" },
-            scale: { duration: 8, repeat: Infinity, ease: "easeInOut" },
-          }}
-        />
-        <motion.div
-          style={{ y: glowY2 }}
-          className="absolute bottom-1/3 right-1/4 w-64 h-64 sm:w-96 sm:h-96 rounded-full blur-3xl opacity-30"
-          animate={{
-            background: [
-              "radial-gradient(circle, rgba(255, 77, 160, 0.2), transparent)",
-              "radial-gradient(circle, rgba(209, 58, 255, 0.3), transparent)",
-              "radial-gradient(circle, rgba(255, 77, 160, 0.2), transparent)",
-            ],
-            scale: [1.2, 1, 1.2],
-          }}
-          transition={{
-            background: {
-              duration: 6,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 3,
-            },
-            scale: {
-              duration: 8,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 4,
-            },
-          }}
-        />
-
-        {/* Additional floating particles */}
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-white/10 rounded-full"
-            style={{
-              left: `${20 + i * 15}%`,
-              top: `${30 + i * 10}%`,
-            }}
-            animate={{
-              y: [0, -20, 0],
-              opacity: [0.1, 0.3, 0.1],
-              scale: [1, 1.5, 1],
-            }}
-            transition={{
-              duration: 4 + i,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.5,
-            }}
-          />
-        ))}
+      <div className="text-center mb-12">
+        <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-brand-purple to-brand-pink">
+          Admin Dashboard
+        </h1>
+        <p className="text-xl text-white/80 max-w-2xl mx-auto">
+          Manage events, scholarships, and content for your platform
+        </p>
       </div>
 
-      {/* Cosmic planet arc and floating stars background */}
-      <div className="fixed inset-0 -z-20 pointer-events-none">
-        {/* Large glowing arc (planet) at bottom center */}
-        <div
-          className="absolute left-1/2 bottom-[-120px] -translate-x-1/2"
-          style={{
-            width: "120vw",
-            height: "60vh",
-            borderRadius: "50% 50% 0 0/100% 100% 0 0",
-            background:
-              "radial-gradient(ellipse at center, rgba(139,92,246,0.25) 0%, rgba(236,72,153,0.18) 40%, rgba(17,24,39,0.01) 80%)",
-            filter: "blur(32px)",
-            boxShadow: "0 0 120px 60px #8B5CF6, 0 0 240px 120px #EC4899",
-            opacity: 0.85,
-          }}
-        />
-        {/* Soft floating stars */}
-        {[...Array(18)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white/20 shadow-lg"
-            style={{
-              width: `${1.5 + Math.random() * 2.5}px`,
-              height: `${1.5 + Math.random() * 2.5}px`,
-              left: `${10 + Math.random() * 80}%`,
-              top: `${5 + Math.random() * 80}%`,
-              filter: "blur(0.5px)",
-            }}
-            animate={{
-              y: [0, -10 - Math.random() * 20, 0],
-              opacity: [0.5, 1, 0.5],
-            }}
-            transition={{
-              duration: 8 + Math.random() * 6,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.3,
-            }}
-          />
-        ))}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <Card className="bg-gradient-to-br from-white/5 to-white/10 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Calendar className="h-6 w-6 text-brand-purple" />
+              Events Management
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              Total: {stats.totalEvents} | Active: {stats.activeEvents}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Link to="/admin/events" className="flex-1">
+                <Button className="w-full bg-brand-purple hover:bg-brand-purple/90">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Manage Events
+                </Button>
+              </Link>
+              <Link to="/events" className="flex-1">
+                <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Public
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-white/5 to-white/10 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <GraduationCap className="h-6 w-6 text-brand-pink" />
+              Scholarships Management
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              Total: {stats.totalScholarships} | International: {stats.internationalScholarships}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Link to="/admin/scholarships" className="flex-1">
+                <Button className="w-full bg-brand-pink hover:bg-brand-pink/90">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Manage Scholarships
+                </Button>
+              </Link>
+              <Link to="/scholarships" className="flex-1">
+                <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Public
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-white/5 to-white/10 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Percent className="h-6 w-6 text-brand-cyan" />
+              Student Discounts
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              Total: {stats.totalDiscounts} | Verified: {stats.verifiedDiscounts}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Link to="/admin/student-discounts" className="flex-1">
+                <Button className="w-full bg-brand-cyan hover:bg-brand-cyan/90">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Manage Discounts
+                </Button>
+              </Link>
+              <Link to="/student-discounts" className="flex-1">
+                <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Public
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Removed: <Navbar /> */}
+      {/* Quick Stats Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+        <Card className="bg-gradient-to-br from-brand-purple/20 to-brand-purple/10 border-brand-purple/20">
+          <CardContent className="p-6 text-center">
+            <Calendar className="h-8 w-8 text-brand-purple mx-auto mb-2" />
+            <div className="text-2xl font-bold text-white">{stats.totalEvents}</div>
+            <div className="text-sm text-white/60">Total Events</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-brand-pink/20 to-brand-pink/10 border-brand-pink/20">
+          <CardContent className="p-6 text-center">
+            <GraduationCap className="h-8 w-8 text-brand-pink mx-auto mb-2" />
+            <div className="text-2xl font-bold text-white">{stats.totalScholarships}</div>
+            <div className="text-sm text-white/60">Scholarships</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-brand-cyan/20 to-brand-cyan/10 border-brand-cyan/20">
+          <CardContent className="p-6 text-center">
+            <Percent className="h-8 w-8 text-brand-cyan mx-auto mb-2" />
+            <div className="text-2xl font-bold text-white">{stats.totalDiscounts}</div>
+            <div className="text-sm text-white/60">Student Discounts</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-green-500/20 to-green-500/10 border-green-500/20">
+          <CardContent className="p-6 text-center">
+            <TrendingUp className="h-8 w-8 text-green-500 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-white">{stats.activeEvents}</div>
+            <div className="text-sm text-white/60">Active Events</div>
+          </CardContent>
+        </Card>
+      </div>
 
-      <motion.div
-        variants={sectionVariants}
-        className="relative z-10 w-full overflow-x-hidden"
-      >
-        <Hero />
-        <motion.div
-          variants={sectionVariants}
-          className="w-full overflow-x-hidden"
-        >
-          <NewsTicker
-            items={[
-              { text: " Participate on Devpost", link: "https://devpost.com/" },
-              {
-                text: " Crack challenges on Unstop",
-                link: "https://unstop.com/",
-              },
-              {
-                text: " Govt Jobs – Apply via NCS",
-                link: "https://www.ncs.gov.in/",
-              },
-              {
-                text: " Internships at ISRO",
-                link: "https://www.isro.gov.in/Careers.html",
-              },
-              {
-                text: " Explore DRDO Opportunities",
-                link: "https://drdo.gov.in/careers",
-              },
-              {
-                text: " MyGov Internships",
-                link: "https://mygov.in/campaigns/internship/",
-              },
-              {
-                text: " CDAC Job Openings",
-                link: "https://cdac.in/index.aspx?id=job_opportunities",
-              },
-            ]}
-          />
-
-          {/* Separator after NewsTicker */}
-          <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
-            whileInView={{ opacity: 1, scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="container mx-auto px-4 py-8"
-          >
-            <GradientSeparator thickness="medium" opacity="medium" />
-          </motion.div>
-
-          <EventCarousel />
-
-          {/* Separator after EventCarousel */}
-          <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
-            whileInView={{ opacity: 1, scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-            className="container mx-auto px-4 py-8"
-          >
-            <GradientSeparator thickness="medium" opacity="medium" />
-          </motion.div>
-
-          <TrendingContent />
-        </motion.div>
-      </motion.div>
-
-      {/* Separator before StudentDiscountPreview */}
-      <motion.div
-        initial={{ opacity: 0, scaleX: 0 }}
-        whileInView={{ opacity: 1, scaleX: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1, ease: "easeOut" }}
-        className="container mx-auto px-4 py-12"
-      >
-        <GradientSeparator thickness="thick" opacity="high" />
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 100 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.1 }}
-        transition={{ duration: 1, ease: "easeOut" }}
-      >
-        <StudentDiscountPreview />
-      </motion.div>
-
-      {/* Separator before Timeline */}
-      <motion.div
-        initial={{ opacity: 0, scaleX: 0 }}
-        whileInView={{ opacity: 1, scaleX: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1, ease: "easeOut" }}
-        className="container mx-auto px-4 py-12"
-      >
-        <GradientSeparator thickness="thick" opacity="high" />
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 100 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.1 }}
-        transition={{ duration: 1, ease: "easeOut" }}
-      >
-        <Timeline />
-      </motion.div>
-
-      {/* Separator before StatsSection */}
-      <motion.div
-        initial={{ opacity: 0, scaleX: 0 }}
-        whileInView={{ opacity: 1, scaleX: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1, ease: "easeOut" }}
-        className="container mx-auto px-4 py-12"
-      >
-        <GradientSeparator thickness="thick" opacity="high" />
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 100 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.1 }}
-        transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-      >
-        <StatsSection />
-      </motion.div>
-
-      {/* Separator before Footer */}
-      <motion.div
-        initial={{ opacity: 0, scaleX: 0 }}
-        whileInView={{ opacity: 1, scaleX: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1, ease: "easeOut" }}
-        className="container mx-auto px-4 py-12"
-      >
-        <GradientSeparator thickness="thick" opacity="high" />
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
-      >
-        {/* Removed: <Footer /> */}
-      </motion.div>
+      {/* Quick Actions */}
+      <Card className="bg-gradient-to-br from-white/5 to-white/10 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Settings className="h-6 w-6 text-brand-purple" />
+            Quick Actions
+          </CardTitle>
+          <CardDescription className="text-white/60">
+            Manage your platform content and settings
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-4">
+            <Link to="/resources-hub">
+              <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                <Eye className="h-4 w-4 mr-2" />
+                View Resources Hub
+              </Button>
+            </Link>
+            <Link to="/admin/events">
+              <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Event
+              </Button>
+            </Link>
+            <Link to="/admin/scholarships">
+              <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Scholarship
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 };
 
-// Changed export default from Index to AdminIndex
 export default AdminIndex;

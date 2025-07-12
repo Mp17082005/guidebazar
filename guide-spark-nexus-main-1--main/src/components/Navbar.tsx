@@ -65,6 +65,7 @@ const Navbar = () => {
   ];
 
   const resourcesDropdownItems = [
+    { name: "Resources Hub", href: `${basePath}/resources` },
     { name: "Blogs", href: `${basePath}/blogs` },
     { name: "Scholarships", href: `${basePath}/scholarships` },
     { name: "Courses", href: `${basePath}/courses` },
@@ -80,6 +81,7 @@ const Navbar = () => {
     location.pathname === `${basePath}/startups` ||
     location.pathname === `${basePath}/internships`;
   const isResourcesActive =
+    location.pathname.startsWith(`${basePath}/resources`) ||
     location.pathname.startsWith(`${basePath}/blogs`) ||
     location.pathname.startsWith(`${basePath}/scholarships`) ||
     location.pathname.startsWith(`${basePath}/courses`) ||

@@ -1215,7 +1215,7 @@
 // };
 
 // export default App;
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -1255,6 +1255,7 @@ import YouTubeShorts from "./pages/YouTubeShorts";
 import Podcasts from "./pages/Podcasts";
 import StudentDiscounts from "./pages/StudentDiscounts";
 import Community from "./pages/Community"; // Ensure Community is imported
+import ResourcesHub from "./pages/ResourcesHub"; // Add ResourcesHub import
 import AIBotFab from "@/components/ui/AIBotFab";
 import Navbar from "@/components/Navbar"; // Ensure Navbar is imported
 import Footer from "@/components/Footer"; // Ensure Footer is imported
@@ -1538,6 +1539,7 @@ const AppContent: React.FC = () => {
         <Route path="youtube-shorts" element={<YouTubeShorts />} />
         <Route path="podcasts" element={<Podcasts />} />
         <Route path="student-discounts" element={<StudentDiscounts />} />
+        <Route path="resources" element={<ResourcesHub />} />
         <Route path="community" element={<Community />} />
         {/* Catch-all for any other path if user is logged in as 'user' and not matching above */}
         <Route path="*" element={<NotFound />} />

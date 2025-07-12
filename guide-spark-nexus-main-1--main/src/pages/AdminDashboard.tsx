@@ -87,7 +87,7 @@ import AdminProfile from "./admin/AdminProfile";
 import AdminNetwork from "./admin/AdminNetwork";
 import AdminYouTubeShorts from "./admin/AdminYouTubeShorts";
 import AdminPodcasts from "./admin/AdminPodcasts";
-import AdminStudentDiscounts from "./admin/AdminStudentDiscounts";
+import AdminStudentDiscountsNew from "./admin/AdminStudentDiscountsNew";
 
 const AdminDashboard: React.FC = () => {
   return (
@@ -115,7 +115,7 @@ const AdminDashboard: React.FC = () => {
           <Route path="/podcasts" element={<AdminPodcasts />} />
           <Route
             path="/student-discounts"
-            element={<AdminStudentDiscounts />}
+            element={<AdminStudentDiscountsNew />}
           />
 
           {/* Fallback for /admin/* - if no specific route matches, redirect to admin home */}

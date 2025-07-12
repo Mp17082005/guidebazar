@@ -22,9 +22,7 @@ import {
   Sparkles,
   Plus,
   X,
-  Trash2,
 } from "lucide-react";
-import EventCalendar from "@/components/EventCalendar";
 
 interface Event {
   id: number;
@@ -38,7 +36,6 @@ interface Event {
   daysLeft: number;
   description: string;
   image?: string;
-  link?: string;
 }
 
 interface EventFormData {
@@ -48,8 +45,16 @@ interface EventFormData {
   time: string;
   location: string;
   type: string;
-  link?: string;
 }
+
+const Events = () => {
+  const [city, setCity] = useState<string>("all");
+  const [eventType, setEventType] = useState<string>("all");
+  const [showHostForm, setShowHostForm] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  
+  // Form state for new event
+  const [formEventType, setFormEventType] = useState<string>("tech");
 
 // Default events data
 const defaultEvents: Event[] = [
@@ -66,7 +71,6 @@ const defaultEvents: Event[] = [
     description:
       "Connect with tech founders and investors from across India.",
     image: "https://images.unsplash.com/photo-1551038247-3d9af20df552",
-    link: "https://example.com/register/startup-summit-2025"
   },
     {
       id: 2,
@@ -81,7 +85,6 @@ const defaultEvents: Event[] = [
       description:
         "Learn essential financial skills for students and early professionals.",
       image: "https://images.unsplash.com/photo-1494891848038-7bd202a2afeb",
-      link: "https://zoom.us/meeting/finance-workshop-2025"
     },
     {
       id: 3,
@@ -96,7 +99,6 @@ const defaultEvents: Event[] = [
       description:
         "Build innovative solutions and compete for prizes worth ₹5 Lakhs.",
       image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5",
-      link: "https://example.com/hackathon/codewars2025"
     },
     {
       id: 4,
@@ -111,7 +113,6 @@ const defaultEvents: Event[] = [
       description:
         "Discover how AI is transforming industries and creating new opportunities.",
       image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
-      link: "https://example.com/webinar/ai-career-paths"
     },
   ];
 
@@ -125,32 +126,24 @@ const Events = () => {
   const [formEventType, setFormEventType] = useState<string>("tech");
 
   useEffect(() => {
-    // Load events from backend API
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch('http://localhost:5001/api/events');
-        const data = await response.json();
-        
-        if (data.success) {
-          // Calculate days left for each event
-          const eventsWithDaysLeft = data.events.map((event: Event) => ({
-            ...event,
-            daysLeft: Math.ceil((new Date(event.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-          }));
-          setUpcomingEvents(eventsWithDaysLeft);
-        } else {
-          console.error('Failed to fetch events:', data.message);
-          // Fallback to default events if API fails
-          setUpcomingEvents(defaultEvents);
-        }
-      } catch (error) {
-        console.error('Error fetching events:', error);
-        // Fallback to default events if API fails
-        setUpcomingEvents(defaultEvents);
-      }
-    };
-
-    fetchEvents();
+    
+    // Load events from localStorage (from admin panel) or use default
+    const savedEvents = localStorage.getItem('adminEvents');
+    if (savedEvents) {
+      const parsedEvents = JSON.parse(savedEvents);
+      // Convert date format for display
+      const formattedEvents = parsedEvents.map((event: Event) => ({
+        ...event,
+        date: new Date(event.date).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+      }));
+      setUpcomingEvents(formattedEvents);
+    } else {
+      setUpcomingEvents(defaultEvents);
+    }
   }, []);
 
   const filteredEvents = upcomingEvents.filter((event) => {
@@ -162,66 +155,37 @@ const Events = () => {
     );
   });
 
-  const handleHostEvent = async (formData: EventFormData) => {
+  const handleHostEvent = (formData: EventFormData) => {
     console.log("New event submitted:", formData);
     
-    try {
-      const response = await fetch('http://localhost:5001/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+    // Create a new event object
+    const newEvent = {
+      id: Date.now(), // Simple ID generation using timestamp
+      title: formData.title,
+      description: formData.description,
+      date: formData.date,
+      time: formData.time,
+      location: formData.location,
+      type: formData.type,
+      attendees: 0, // New events start with 0 attendees
+      maxAttendees: 100, // Default max attendees
+      daysLeft: Math.ceil((new Date(formData.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+      image: "https://images.unsplash.com/photo-1551038247-3d9af20df552" // Default image
+    };
 
-      const data = await response.json();
-      
-      if (data.success) {
-        // Add the new event to the existing events list
-        const newEventWithDaysLeft = {
-          ...data.event,
-          daysLeft: Math.ceil((new Date(data.event.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-        };
-        setUpcomingEvents([...upcomingEvents, newEventWithDaysLeft]);
-        
-        // Reset form and close
-        setFormEventType("tech");
-        setShowHostForm(false);
-        
-        console.log("Event created successfully:", data.event);
-      } else {
-        console.error('Failed to create event:', data.message);
-        // You could show an error message to the user here
-      }
-    } catch (error) {
-      console.error('Error creating event:', error);
-      // You could show an error message to the user here
-    }
-  };
-
-  const handleDeleteEvent = async (eventId: number) => {
-    if (!confirm("Are you sure you want to delete this event?")) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`http://localhost:5001/api/events/${eventId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setUpcomingEvents(prev => prev.filter(event => event.id !== eventId));
-        console.log("Event deleted successfully");
-      } else {
-        console.error('Failed to delete event:', data.message);
-        alert('Failed to delete event. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      alert('Error deleting event. Please try again.');
-    }
+    // Add the new event to the existing events list
+    const updatedEvents = [...upcomingEvents, newEvent];
+    setUpcomingEvents(updatedEvents);
+    
+    // Save to localStorage so it persists and appears in admin panel
+    localStorage.setItem('adminEvents', JSON.stringify(updatedEvents));
+    
+    // Reset form and close
+    setFormEventType("tech");
+    setShowHostForm(false);
+    
+    // Show success feedback (optional)
+    console.log("Event created successfully:", newEvent);
   };
 
   return (
@@ -312,8 +276,7 @@ const Events = () => {
                       date: formData.get('date') as string,
                       time: formData.get('time') as string,
                       location: formData.get('location') as string,
-                      type: formEventType,
-                      link: formData.get('link') as string
+                      type: formEventType
                     };
                     handleHostEvent(eventData);
                   }}
@@ -383,17 +346,6 @@ const Events = () => {
                       placeholder="Describe your event"
                       rows={3}
                       required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Event Link (Registration/Join URL)
-                    </label>
-                    <Input
-                      name="link"
-                      type="url"
-                      placeholder="https://example.com/event-registration"
                     />
                   </div>
 
@@ -568,25 +520,9 @@ const Events = () => {
                             <Button
                               size="sm"
                               className="relative overflow-hidden group bg-gradient-to-r from-brand-purple to-brand-pink hover:opacity-90 transition-all"
-                              onClick={() => {
-                                if (event.link) {
-                                  window.open(event.link, '_blank');
-                                } else {
-                                  alert('No registration link available for this event');
-                                }
-                              }}
                             >
                               <span className="relative z-10">Join Event</span>
                               <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="w-full"
-                              onClick={() => handleDeleteEvent(event.id)}
-                            >
-                              <Trash2 size={16} className="mr-2" />
-                              Delete
                             </Button>
                           </div>
                         </div>
@@ -618,8 +554,77 @@ const Events = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
+                className="bg-background/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden"
               >
-                <EventCalendar events={upcomingEvents} />
+                <div className="p-8">
+                  <div className="flex items-center justify-center space-x-4 mb-8">
+                    <Button variant="outline" size="sm">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      <span>Previous</span>
+                    </Button>
+                    <h3 className="text-xl font-semibold">June 2025</h3>
+                    <Button variant="outline" size="sm">
+                      <span>Next</span>
+                      <Calendar className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                      (day) => (
+                        <div
+                          key={day}
+                          className="text-center text-xs font-medium text-foreground/60 p-2"
+                        >
+                          {day}
+                        </div>
+                      )
+                    )}
+
+                    {Array.from({ length: 35 }).map((_, i) => {
+                      const day = i - 2;
+                      const hasEvent = day === 3 || day === 15 || day === 20;
+
+                      return (
+                        <motion.div
+                          key={i}
+                          className={`
+                            border border-white/5 rounded-md p-2 min-h-[70px] relative
+                            ${day < 1 || day > 30 ? "opacity-30" : ""}
+                            ${
+                              hasEvent
+                                ? "bg-brand-purple/10"
+                                : "hover:bg-white/5"
+                            }
+                          `}
+                          whileHover={{ scale: 1.03 }}
+                        >
+                          <div className="text-xs">
+                            {day < 1 ? 31 + day : day > 30 ? day - 30 : day}
+                          </div>
+                          {hasEvent && (
+                            <div className="absolute bottom-1 left-1 right-1">
+                              <div className="text-[10px] bg-brand-purple/20 text-brand-purple rounded px-1 py-0.5 truncate">
+                                {day === 3
+                                  ? "Financial Workshop"
+                                  : day === 15
+                                  ? "Tech Summit"
+                                  : "AI Careers"}
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="text-center mt-8">
+                    <p className="text-sm text-foreground/70">
+                      Calendar view is available for preview. Upcoming feature:
+                      Event details on click.
+                    </p>
+                  </div>
+                </div>
               </motion.div>
             </TabsContent>
           </Tabs>

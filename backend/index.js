@@ -30,9 +30,13 @@ app.get('/', (req, res) => {
 // API routes
 app.use('/api/startups', require('./routes/startups'));
 app.use('/api/marketplace', require('./routes/marketplace'));
+app.use('/api/resources', require('./routes/resources'));
+app.use('/api/events', require('./routes/events'));
+app.use('/api/scholarships', require('./routes/scholarships'));
+app.use('/api', require('./routes/admin'));
 
 // TODO: Add API routes for startups and marketplace
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-}); 
+});

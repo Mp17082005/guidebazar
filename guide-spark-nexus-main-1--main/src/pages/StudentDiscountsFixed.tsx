@@ -7,6 +7,9 @@ import {
   Star,
   Calendar,
   Users,
+  Tag,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +29,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GradientSeparator from "@/components/GradientSeparator";
 
 // Student discount default data
@@ -166,6 +169,15 @@ const categories = [
   "Entertainment",
   "Food & Lifestyle",
 ];
+const verificationTypes = [
+  "All",
+  ".edu Email",
+  "UNiDAYS",
+  "StudentBeans",
+  "GitHub Student Pack",
+  "Student ID",
+];
+const sortOptions = ["Popular", "New", "Verified Recently", "Limited Time"];
 
 interface StudentDiscount {
   id: number;
@@ -195,6 +207,8 @@ interface StudentDiscount {
 const StudentDiscounts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedVerification, setSelectedVerification] = useState("All");
+  const [sortBy, setSortBy] = useState("Popular");
   const [studentDiscounts, setStudentDiscounts] = useState<StudentDiscount[]>([]);
 
   // Load student discounts from localStorage (from admin panel) or use default
@@ -215,15 +229,35 @@ const StudentDiscounts = () => {
         discount.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory =
         selectedCategory === "All" || discount.category === selectedCategory;
+      const matchesVerification =
+        selectedVerification === "All" ||
+        discount.verification === selectedVerification;
 
-      return matchesSearch && matchesCategory;
+      return matchesSearch && matchesCategory && matchesVerification;
     });
 
-    // Sort by popularity (upvotes)
-    filtered.sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
+    // Sort the filtered results
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "Popular":
+          return (b.upvotes || 0) - (a.upvotes || 0);
+        case "New":
+          return (
+            new Date(b.verified || 0).getTime() - new Date(a.verified || 0).getTime()
+          );
+        case "Verified Recently":
+          return (
+            new Date(b.verified || 0).getTime() - new Date(a.verified || 0).getTime()
+          );
+        case "Limited Time":
+          return (b.isLimitedTime ? 1 : 0) - (a.isLimitedTime ? 1 : 0);
+        default:
+          return 0;
+      }
+    });
 
     return filtered;
-  }, [studentDiscounts, searchTerm, selectedCategory]);
+  }, [studentDiscounts, searchTerm, selectedCategory, selectedVerification, sortBy]);
 
   return (
     <motion.div
